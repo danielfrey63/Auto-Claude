@@ -64,12 +64,17 @@ class ContextLoader:
         3. spec.md explicit declaration - Spec writer's declaration
         4. Keyword-based detection - Last resort fallback
         """
+        def _normalize_workflow_type(value: str) -> str:
+            normalized = (value or "").strip().lower()
+            return normalized.replace("_", "")
+
         type_mapping = {
             "feature": WorkflowType.FEATURE,
             "refactor": WorkflowType.REFACTOR,
             "investigation": WorkflowType.INVESTIGATION,
             "migration": WorkflowType.MIGRATION,
             "simple": WorkflowType.SIMPLE,
+            "bugfix": WorkflowType.INVESTIGATION,
         }
 
         # 1. Check requirements.json (user's explicit intent)
@@ -78,7 +83,9 @@ class ContextLoader:
             try:
                 with open(requirements_file) as f:
                     requirements = json.load(f)
-                declared_type = requirements.get("workflow_type", "").lower()
+                declared_type = _normalize_workflow_type(
+                    requirements.get("workflow_type", "")
+                )
                 if declared_type in type_mapping:
                     return type_mapping[declared_type]
             except (json.JSONDecodeError, KeyError):
@@ -90,7 +97,9 @@ class ContextLoader:
             try:
                 with open(assessment_file) as f:
                     assessment = json.load(f)
-                declared_type = assessment.get("workflow_type", "").lower()
+                declared_type = _normalize_workflow_type(
+                    assessment.get("workflow_type", "")
+                )
                 if declared_type in type_mapping:
                     return type_mapping[declared_type]
             except (json.JSONDecodeError, KeyError):
@@ -114,6 +123,7 @@ class ContextLoader:
             "investigation": WorkflowType.INVESTIGATION,
             "migration": WorkflowType.MIGRATION,
             "simple": WorkflowType.SIMPLE,
+            "bugfix": WorkflowType.INVESTIGATION,
         }
 
         # Check for explicit workflow type declaration in spec
@@ -127,7 +137,7 @@ class ContextLoader:
         for pattern in explicit_type_patterns:
             match = re.search(pattern, content_lower)
             if match:
-                declared_type = match.group(1).strip()
+                declared_type = match.group(1).strip().replace("_", "")
                 if declared_type in type_mapping:
                     return type_mapping[declared_type]
 
